@@ -85,6 +85,7 @@ export interface WebviewPayload {
     minChangeIdLength?: number;
     theme?: string;
     graphLabelAlignment?: string;
+    bookmarkLayout?: string;
     hiddenActions?: CommitAction[];
     // Details fields
     changeId?: string;

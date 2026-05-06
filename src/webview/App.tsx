@@ -43,6 +43,9 @@ const App: React.FC = () => {
     const [graphLabelAlignment, setGraphLabelAlignment] = React.useState<string>(
         initialData?.payload?.graphLabelAlignment || 'aligned',
     );
+    const [bookmarkLayout, setBookmarkLayout] = React.useState<string>(
+        initialData?.payload?.bookmarkLayout || 'inline',
+    );
     // Use ref to access latest commits in event listeners without triggering re-effects
     const commitsRef = React.useRef(commits);
     React.useEffect(() => {
@@ -128,6 +131,9 @@ const App: React.FC = () => {
                         }
                         if (message.graphLabelAlignment !== undefined) {
                             setGraphLabelAlignment(message.graphLabelAlignment);
+                        }
+                        if (message.bookmarkLayout !== undefined) {
+                            setBookmarkLayout(message.bookmarkLayout);
                         }
                         if (message.hiddenActions !== undefined) {
                             setHiddenActions(new Set(message.hiddenActions));
@@ -440,6 +446,7 @@ const App: React.FC = () => {
                         selectedCommitIds={selectedCommitIds}
                         minChangeIdLength={minChangeIdLength}
                         graphLabelAlignment={graphLabelAlignment}
+                        bookmarkLayout={bookmarkLayout}
                         theme={theme}
                         hiddenActions={hiddenActions}
                     />

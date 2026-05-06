@@ -12,6 +12,8 @@
 export const LANE_WIDTH = 16;
 export const ROW_HEIGHT_NORMAL = 28;
 export const ROW_HEIGHT_EXPANDED = 44;
+export const ROW_HEIGHT_STACKED = 50;
+export const ROW_HEIGHT_STACKED_EXPANDED = 66;
 export const ROW_HEIGHT_ELISION = 10;
 export const LEFT_MARGIN = 12;
 export const COMMIT_ROW_PADDING_LEFT = 6;

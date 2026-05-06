@@ -30,7 +30,11 @@ export class JjLogWebviewProvider implements vscode.WebviewViewProvider {
         this._gerrit.onDidUpdate(() => this.refreshGerrit());
 
         vscode.workspace.onDidChangeConfiguration((e) => {
-            if (e.affectsConfiguration('jj-view.logTheme') || e.affectsConfiguration('jj-view.graphLabelAlignment')) {
+            if (
+                e.affectsConfiguration('jj-view.logTheme') ||
+                e.affectsConfiguration('jj-view.graphLabelAlignment') ||
+                e.affectsConfiguration('jj-view.bookmarkLayout')
+            ) {
                 this._renderCommits(this._cachedCommits);
             }
         });
@@ -71,6 +75,7 @@ export class JjLogWebviewProvider implements vscode.WebviewViewProvider {
                 const config = vscode.workspace.getConfiguration('jj-view');
                 const currentTheme = config.get<string>('logTheme', 'default');
                 const graphLabelAlignment = config.get<string>('graphLabelAlignment', 'aligned');
+                const bookmarkLayout = config.get<string>('bookmarkLayout', 'inline');
                 const hiddenActions = this._getHiddenActions();
                 webviewView.webview.html = this._getHtmlForWebview(webviewView.webview, {
                     view: 'graph',
@@ -78,6 +83,7 @@ export class JjLogWebviewProvider implements vscode.WebviewViewProvider {
                         commits: this._cachedCommits,
                         theme: currentTheme,
                         graphLabelAlignment,
+                        bookmarkLayout,
                         hiddenActions,
                     },
                 });
@@ -87,6 +93,7 @@ export class JjLogWebviewProvider implements vscode.WebviewViewProvider {
         const config = vscode.workspace.getConfiguration('jj-view');
         const initialTheme = config.get<string>('logTheme', 'default');
         const graphLabelAlignment = config.get<string>('graphLabelAlignment', 'aligned');
+        const bookmarkLayout = config.get<string>('bookmarkLayout', 'inline');
         const hiddenActions = this._getHiddenActions();
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview, {
             view: 'graph',
@@ -94,6 +101,7 @@ export class JjLogWebviewProvider implements vscode.WebviewViewProvider {
                 commits: this._cachedCommits,
                 theme: initialTheme,
                 graphLabelAlignment,
+                bookmarkLayout,
                 hiddenActions,
             },
         });
@@ -317,6 +325,7 @@ export class JjLogWebviewProvider implements vscode.WebviewViewProvider {
         const minChangeIdLength = config.get<number>('minChangeIdLength', 1);
         const logTheme = config.get<string>('logTheme', 'default');
         const graphLabelAlignment = config.get<string>('graphLabelAlignment', 'aligned');
+        const bookmarkLayout = config.get<string>('bookmarkLayout', 'inline');
 
         if (this._gerrit.isEnabled) {
             this._gerrit.populateGerritInfo(commits);
@@ -330,6 +339,7 @@ export class JjLogWebviewProvider implements vscode.WebviewViewProvider {
             minChangeIdLength,
             theme: logTheme,
             graphLabelAlignment,
+            bookmarkLayout,
             hiddenActions: this._getHiddenActions(),
         });
     }

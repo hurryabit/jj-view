@@ -125,6 +125,19 @@
                     ],
                     "description": "Controls the horizontal alignment of commit messages in the log view."
                 },
+                "jj-view.bookmarkLayout": {
+                    "type": "string",
+                    "default": "inline",
+                    "enum": [
+                        "inline",
+                        "stacked"
+                    ],
+                    "enumDescriptions": [
+                        "Show bookmarks inline with the commit title on the same line.",
+                        "Show bookmarks on a separate line below the commit title."
+                    ],
+                    "description": "Controls whether bookmarks are shown inline with the commit title or on a separate line below it."
+                },
                 "jj-view.commit.titleWidthRuler": {
                     "type": "number",
                     "default": 50,

@@ -13,6 +13,8 @@ import {
     ROW_HEIGHT_ELISION,
     ROW_HEIGHT_EXPANDED,
     ROW_HEIGHT_NORMAL,
+    ROW_HEIGHT_STACKED,
+    ROW_HEIGHT_STACKED_EXPANDED,
 } from '../layout-constants';
 import { computeCompactRowMaxX, computeGap, computeGraphAreaWidth, computeMaxShortestIdLength } from '../layout-utils';
 import { CommitNode } from './CommitNode';
@@ -24,6 +26,7 @@ interface CommitGraphProps {
     selectedCommitIds?: Set<string>;
     minChangeIdLength: number;
     graphLabelAlignment?: string;
+    bookmarkLayout?: string;
     theme?: string;
     hiddenActions?: Set<CommitAction>;
 }
@@ -34,6 +37,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
     selectedCommitIds,
     minChangeIdLength,
     graphLabelAlignment = 'aligned',
+    bookmarkLayout = 'inline',
     theme = 'default',
     hiddenActions,
 }) => {
@@ -74,7 +78,15 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
                 height = ROW_HEIGHT_ELISION;
             } else {
                 const commit = row as JjLogEntry;
-                height = commit.gerritCl ? ROW_HEIGHT_EXPANDED : ROW_HEIGHT_NORMAL;
+                const hasLabels =
+                    (commit.bookmarks?.length ?? 0) > 0 ||
+                    (commit.tags?.length ?? 0) > 0 ||
+                    (commit.working_copies?.length ?? 0) > 0;
+                if (bookmarkLayout === 'stacked' && hasLabels) {
+                    height = commit.gerritCl ? ROW_HEIGHT_STACKED_EXPANDED : ROW_HEIGHT_STACKED;
+                } else {
+                    height = commit.gerritCl ? ROW_HEIGHT_EXPANDED : ROW_HEIGHT_NORMAL;
+                }
             }
             currentOffset += height;
         });
@@ -83,7 +95,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
         offsets.push(currentOffset);
 
         return { rowOffsets: offsets, totalHeight: currentOffset };
-    }, [displayRows]);
+    }, [displayRows, bookmarkLayout]);
 
     // Determine the max shortest ID length to display
     const maxShortestIdLength = React.useMemo(
@@ -159,7 +171,16 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
 
                     const commit = row as JjLogEntry;
                     const isSelected = selectedCommitIds?.has(commit.change_id);
-                    const height = commit.gerritCl ? ROW_HEIGHT_EXPANDED : ROW_HEIGHT_NORMAL;
+                    const hasLabels =
+                        (commit.bookmarks?.length ?? 0) > 0 ||
+                        (commit.tags?.length ?? 0) > 0 ||
+                        (commit.working_copies?.length ?? 0) > 0;
+                    let height: number;
+                    if (bookmarkLayout === 'stacked' && hasLabels) {
+                        height = commit.gerritCl ? ROW_HEIGHT_STACKED_EXPANDED : ROW_HEIGHT_STACKED;
+                    } else {
+                        height = commit.gerritCl ? ROW_HEIGHT_EXPANDED : ROW_HEIGHT_NORMAL;
+                    }
                     const paddingLeft = compactPaddingMap?.get(i) ?? graphAreaWidth;
                     return (
                         <div
@@ -191,6 +212,7 @@ export const CommitGraph: React.FC<CommitGraphProps> = ({
                                 hasImmutableSelection={hasImmutableSelection}
                                 idDisplayLength={maxShortestIdLength}
                                 hiddenActions={hiddenActions}
+                                bookmarkLayout={bookmarkLayout}
                             />
                         </div>
                     );

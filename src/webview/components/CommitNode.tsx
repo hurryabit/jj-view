@@ -23,6 +23,7 @@ interface CommitNodeProps {
     hasImmutableSelection: boolean;
     idDisplayLength: number;
     hiddenActions?: Set<CommitAction>;
+    bookmarkLayout?: string;
 }
 
 export const CommitNode: React.FC<CommitNodeProps> = ({
@@ -34,6 +35,7 @@ export const CommitNode: React.FC<CommitNodeProps> = ({
     hasImmutableSelection,
     idDisplayLength,
     hiddenActions = new Set(),
+    bookmarkLayout = 'inline',
 }) => {
     const isImmutable = commit.is_immutable || false;
     const isCurrentWorkingCopy = commit.is_current_working_copy;
@@ -377,15 +379,67 @@ export const CommitNode: React.FC<CommitNodeProps> = ({
                         {displayDescription}
                     </span>
 
-                    {/* Right-aligned Bookmarks */}
-                    <span
+                    {/* Right-aligned Bookmarks (inline layout) */}
+                    {bookmarkLayout !== 'stacked' && (
+                        <span
+                            style={{
+                                display: 'flex',
+                                marginLeft: 'auto',
+                                flex: '0 100 auto', // High shrink priority: metadata shrinks before description
+                                gap: '4px',
+                                alignItems: 'center',
+                                overflow: 'hidden',
+                            }}
+                        >
+                            {commit.bookmarks?.map((bookmark: JjBookmark) => (
+                                <DraggableBookmark
+                                    key={`${bookmark.name}-${bookmark.remote || 'local'}`}
+                                    bookmark={bookmark}
+                                />
+                            ))}
+                            {commit.working_copies &&
+                                commit.working_copies.length > 0 &&
+                                commit.working_copies.map((workspace: string) => (
+                                    <WorkspacePill key={workspace} workspace={workspace} />
+                                ))}
+                            {commit.tags?.map((tag: string) => (
+                                <TagPill key={tag} tag={tag} />
+                            ))}
+
+                            {isOver &&
+                                active?.data?.current?.type === 'bookmark' &&
+                                !commit.bookmarks?.some(
+                                    (b: JjBookmark) =>
+                                        b.name === active.data.current?.name &&
+                                        b.remote === active.data.current?.remote,
+                                ) && (
+                                    <BookmarkPill
+                                        bookmark={{
+                                            name: active.data.current?.name,
+                                            remote: active.data.current?.remote,
+                                        }}
+                                        style={{
+                                            opacity: 0.7,
+                                            backgroundColor: 'transparent',
+                                            border: '1px dashed var(--vscode-charts-blue)',
+                                            boxShadow: 'inset 0 0 8px var(--vscode-charts-blue)',
+                                        }}
+                                    />
+                                )}
+                        </span>
+                    )}
+                </div>
+
+                {/* Stacked Bookmarks row (below title) */}
+                {bookmarkLayout === 'stacked' && (
+                    <div
                         style={{
                             display: 'flex',
-                            marginLeft: 'auto',
-                            flex: '0 100 auto', // High shrink priority: metadata shrinks before description
                             gap: '4px',
                             alignItems: 'center',
                             overflow: 'hidden',
+                            height: '22px',
+                            marginTop: '0px',
                         }}
                     >
                         {commit.bookmarks?.map((bookmark: JjBookmark) => (
@@ -410,7 +464,10 @@ export const CommitNode: React.FC<CommitNodeProps> = ({
                                     b.name === active.data.current?.name && b.remote === active.data.current?.remote,
                             ) && (
                                 <BookmarkPill
-                                    bookmark={{ name: active.data.current?.name, remote: active.data.current?.remote }}
+                                    bookmark={{
+                                        name: active.data.current?.name,
+                                        remote: active.data.current?.remote,
+                                    }}
                                     style={{
                                         opacity: 0.7,
                                         backgroundColor: 'transparent',
@@ -419,8 +476,8 @@ export const CommitNode: React.FC<CommitNodeProps> = ({
                                     }}
                                 />
                             )}
-                    </span>
-                </div>
+                    </div>
+                )}
 
                 {/* Gerrit Info */}
                 {gerritCl && (
