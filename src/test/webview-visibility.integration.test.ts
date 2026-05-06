@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as assert from 'node:assert';
+import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import type { GerritService } from '../gerrit-service';
 import { JjCommitDetailsEditorProvider } from '../jj-commit-details-editor-provider';
@@ -15,6 +16,7 @@ import { createMock } from './test-utils';
 interface UpdateMessage {
     type: 'update';
     commits: JjLogEntry[];
+    bookmarkLayout?: string;
 }
 
 function createMockWebviewView() {
@@ -148,5 +150,54 @@ suite('Webview Visibility Integration Test', () => {
             lastMessage.commits.some((c: JjLogEntry) => c.description.includes('Updated Commit while hidden')),
             'Last message should contain updated data',
         );
+    });
+
+    test('update message includes bookmarkLayout: inline by default', async () => {
+        const { view, sentMessages } = createMockWebviewView();
+        provider.resolveWebviewView(
+            view,
+            createMock<vscode.WebviewViewResolveContext>({}),
+            createMock<vscode.CancellationToken>({}),
+        );
+
+        await provider.refresh();
+
+        assert.strictEqual(sentMessages.length, 1, 'Should have sent one update message');
+        assert.strictEqual(sentMessages[0].bookmarkLayout, 'inline', 'bookmarkLayout should default to inline');
+    });
+
+    test('update message includes bookmarkLayout: stacked when configured', async () => {
+        const sandbox = sinon.createSandbox();
+        try {
+            sandbox
+                .stub(vscode.workspace, 'getConfiguration')
+                .withArgs('jj-view')
+                .returns({
+                    get: (key: string, defaultValue?: unknown) => {
+                        if (key === 'bookmarkLayout') return 'stacked';
+                        if (key === 'logTheme') return 'default';
+                        if (key === 'graphLabelAlignment') return 'aligned';
+                        if (key === 'minChangeIdLength') return 1;
+                        return defaultValue;
+                    },
+                    has: () => true,
+                    inspect: () => undefined,
+                    update: async () => {},
+                } as vscode.WorkspaceConfiguration);
+
+            const { view, sentMessages } = createMockWebviewView();
+            provider.resolveWebviewView(
+                view,
+                createMock<vscode.WebviewViewResolveContext>({}),
+                createMock<vscode.CancellationToken>({}),
+            );
+
+            await provider.refresh();
+
+            assert.strictEqual(sentMessages.length, 1, 'Should have sent one update message');
+            assert.strictEqual(sentMessages[0].bookmarkLayout, 'stacked', 'bookmarkLayout should be stacked');
+        } finally {
+            sandbox.restore();
+        }
     });
 });

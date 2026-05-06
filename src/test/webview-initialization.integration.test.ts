@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as assert from 'node:assert';
+import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import type { GerritService } from '../gerrit-service';
 import { JjCommitDetailsEditorProvider } from '../jj-commit-details-editor-provider';
@@ -148,5 +149,51 @@ suite('Webview Initialization Integration Test', () => {
         assert.ok(htmlAfter.includes('window.vscodeInitialData ='), 'HTML should contain initial data');
         assert.ok(htmlAfter.includes(id2), 'HTML should contain the commit ID from the cache');
         assert.ok(htmlAfter.includes('Test Commit 2'), 'HTML should contain the description from the cache');
+    });
+
+    test('resolveWebviewView injects bookmarkLayout: inline into HTML by default', async () => {
+        const { view, webview } = createMockWebviewView();
+        provider.resolveWebviewView(
+            view,
+            createMock<vscode.WebviewViewResolveContext>({}),
+            createMock<vscode.CancellationToken>({}),
+        );
+
+        assert.ok(webview.html.includes('"bookmarkLayout":"inline"'), 'HTML should contain bookmarkLayout: inline');
+    });
+
+    test('resolveWebviewView injects configured bookmarkLayout: stacked into HTML', async () => {
+        const sandbox = sinon.createSandbox();
+        try {
+            sandbox
+                .stub(vscode.workspace, 'getConfiguration')
+                .withArgs('jj-view')
+                .returns({
+                    get: (key: string, defaultValue?: unknown) => {
+                        if (key === 'bookmarkLayout') return 'stacked';
+                        if (key === 'logTheme') return 'default';
+                        if (key === 'graphLabelAlignment') return 'aligned';
+                        if (key === 'minChangeIdLength') return 1;
+                        return defaultValue;
+                    },
+                    has: () => true,
+                    inspect: () => undefined,
+                    update: async () => {},
+                } as vscode.WorkspaceConfiguration);
+
+            const { view, webview } = createMockWebviewView();
+            provider.resolveWebviewView(
+                view,
+                createMock<vscode.WebviewViewResolveContext>({}),
+                createMock<vscode.CancellationToken>({}),
+            );
+
+            assert.ok(
+                webview.html.includes('"bookmarkLayout":"stacked"'),
+                'HTML should contain bookmarkLayout: stacked',
+            );
+        } finally {
+            sandbox.restore();
+        }
     });
 });
