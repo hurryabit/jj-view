@@ -39,6 +39,7 @@ import { workspaceDeleteCommand } from './commands/workspace-delete';
 import { workspaceForgetCommand } from './commands/workspace-forget';
 import { GerritService } from './gerrit-service';
 import { checkGitColocation } from './git-colocation';
+import { JjBlameStatusBarItem } from './jj-blame-status-bar';
 import { JjCommitDetailsEditorProvider } from './jj-commit-details-editor-provider';
 import { JjContextKey } from './jj-context-keys';
 import { JjEditFileSystemProvider } from './jj-edit-fs-provider';
@@ -116,6 +117,9 @@ export function activate(context: vscode.ExtensionContext) {
             if (e.affectsConfiguration('jj-view.openDiffOnClick')) {
                 setOpenDiffOnClickContext();
                 scmProvider.refresh();
+            }
+            if (e.affectsConfiguration('jj-view.blame.statusBarItem.enabled')) {
+                blameStatusBar.invalidateCache();
             }
         }),
     );
@@ -338,6 +342,21 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(refreshDisposable);
 
     context.subscriptions.push(scmProvider);
+
+    const blameStatusBar = new JjBlameStatusBarItem(jj);
+    context.subscriptions.push(blameStatusBar);
+
+    // Invalidate blame cache whenever SCM status changes (commits, squashes, etc.)
+    scmProvider.onDidChangeStatus(() => blameStatusBar.invalidateCache());
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('jj-view.blame.openChange', async () => {
+            const changeId = blameStatusBar.currentChangeId;
+            if (changeId) {
+                await vscode.commands.executeCommand('jj-view.showDetails', changeId);
+            }
+        }),
+    );
 
     // Refresh tree immediately when SCM is ready (parallel to SCM view calculations)
     scmProvider.onRepoStateReady(() => logWebviewProvider.refresh());

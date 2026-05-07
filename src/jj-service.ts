@@ -1140,6 +1140,15 @@ export class JjService {
         return this.run('absorb', args, { isMutation: true, label: 'absorb' });
     }
 
+    async annotate(filePath: string, template: string): Promise<string> {
+        const relativePath = this.toRelative(filePath);
+        return this.run('file', ['annotate', '--template', template, relativePath], {
+            useCachedSnapshot: true,
+            trim: false,
+            label: 'annotate',
+        });
+    }
+
     async getGitBlobHashes(commitId: string, filePaths: string[]): Promise<Map<string, string>> {
         if (filePaths.length === 0) {
             return new Map();

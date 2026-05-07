@@ -1493,4 +1493,49 @@ log = "none()"
             await jjService.upload(undefined, 'git', 'push');
         });
     });
+
+    describe('annotate', () => {
+        test('returns one output line per file line', async () => {
+            // Create a two-commit history so annotate has interesting output.
+            repo.writeFile('hello.txt', 'line1\nline2\n');
+            repo.describe('first commit');
+            repo.new(undefined, 'second commit');
+            repo.writeFile('hello.txt', 'line1\nline2\nline3\n');
+
+            const filePath = path.join(repo.path, 'hello.txt');
+            const template = 'commit.change_id().short(8) ++ "|" ++ commit.description().first_line() ++ "\\n"';
+            const output = await jjService.annotate(filePath, template);
+
+            const lines = output.split('\n').filter(Boolean);
+            // The file has 3 lines → 3 annotation lines
+            expect(lines).toHaveLength(3);
+        });
+
+        test('annotate output includes the commit that introduced each line', async () => {
+            repo.writeFile('greet.txt', 'hello\n');
+            repo.describe('add hello');
+            repo.new(undefined, 'add world');
+            repo.writeFile('greet.txt', 'hello\nworld\n');
+
+            const filePath = path.join(repo.path, 'greet.txt');
+            const template = 'commit.description().first_line() ++ "\\n"';
+            const output = await jjService.annotate(filePath, template);
+
+            const lines = output.split('\n').filter(Boolean);
+            expect(lines[0]).toBe('add hello');
+            expect(lines[1]).toBe('add world');
+        });
+
+        test('works with repo-relative path', async () => {
+            repo.writeFile('src/utils.ts', 'export const x = 1;\n');
+            repo.describe('add utils');
+
+            // Pass an absolute path — JjService.annotate should handle it
+            const filePath = path.join(repo.path, 'src', 'utils.ts');
+            const template = 'commit.change_id().short(4) ++ "\\n"';
+            const output = await jjService.annotate(filePath, template);
+
+            expect(output.trim()).toBeTruthy();
+        });
+    });
 });
