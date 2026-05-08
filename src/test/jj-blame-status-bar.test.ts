@@ -11,10 +11,12 @@ import { accessPrivate, createMock } from './test-utils';
 // ── vscode mock ──────────────────────────────────────────────────────────────
 
 /** Mutable state that tests can write to before each case. */
-let mockActiveEditor: {
-    document: { uri: { scheme: string; fsPath: string } };
-    selection: { active: { line: number } };
-} | undefined = undefined;
+let mockActiveEditor:
+    | {
+          document: { uri: { scheme: string; fsPath: string } };
+          selection: { active: { line: number } };
+      }
+    | undefined;
 
 let mockConfigEnabled = true;
 
@@ -43,7 +45,9 @@ vi.mock('vscode', () => ({
     workspace: {
         getConfiguration: vi.fn(() => ({
             get: vi.fn((_key: string, defaultValue: unknown) => {
-                if (_key === 'blame.statusBarItem.enabled') return mockConfigEnabled;
+                if (_key === 'blame.statusBarItem.enabled') {
+                    return mockConfigEnabled;
+                }
                 return defaultValue;
             }),
         })),
@@ -63,7 +67,7 @@ async function flushDebounce() {
 }
 
 function makeAnnotateOutput(...lines: string[]): string {
-    return lines.join('\n') + '\n';
+    return `${lines.join('\n')}\n`;
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -146,10 +150,7 @@ describe('JjBlameStatusBarItem', () => {
             selection: { active: { line: 1 } },
         };
         (jjMock.annotate as ReturnType<typeof vi.fn>).mockResolvedValue(
-            makeAnnotateOutput(
-                'aabbccdd1122|Alice|3 days ago|First commit',
-                'xxyyzz998877|Bob|1 hour ago|Fix the bug',
-            ),
+            makeAnnotateOutput('aabbccdd1122|Alice|3 days ago|First commit', 'xxyyzz998877|Bob|1 hour ago|Fix the bug'),
         );
 
         await flushDebounce();
@@ -246,9 +247,7 @@ describe('JjBlameStatusBarItem', () => {
         };
         // Output ends with \n so split produces an empty string at the end;
         // that should not crash or surface as a valid annotation entry.
-        (jjMock.annotate as ReturnType<typeof vi.fn>).mockResolvedValue(
-            'aabbccdd1122|Alice|2 hours ago|Good commit\n',
-        );
+        (jjMock.annotate as ReturnType<typeof vi.fn>).mockResolvedValue('aabbccdd1122|Alice|2 hours ago|Good commit\n');
 
         await flushDebounce();
 
@@ -268,14 +267,20 @@ describe('JjBlameStatusBarItem', () => {
         );
 
         // Initial annotation fetch for line 0
-        mockActiveEditor = { document: { uri: { scheme: 'file', fsPath: filePath } }, selection: { active: { line: 0 } } };
+        mockActiveEditor = {
+            document: { uri: { scheme: 'file', fsPath: filePath } },
+            selection: { active: { line: 0 } },
+        };
         blameItem.invalidateCache();
         await flushDebounce();
         expect(jjMock.annotate).toHaveBeenCalledTimes(1);
         expect(mockItem.text).toContain('Line 1 commit');
 
         // Move cursor to line 1 — simulate selection change without clearing the cache
-        mockActiveEditor = { document: { uri: { scheme: 'file', fsPath: filePath } }, selection: { active: { line: 1 } } };
+        mockActiveEditor = {
+            document: { uri: { scheme: 'file', fsPath: filePath } },
+            selection: { active: { line: 1 } },
+        };
         accessPrivate(blameItem, '_scheduleUpdate').call(blameItem);
         await flushDebounce();
 
@@ -290,7 +295,10 @@ describe('JjBlameStatusBarItem', () => {
             makeAnnotateOutput('aabbccdd1122|Alice|3 days ago|Initial'),
         );
 
-        mockActiveEditor = { document: { uri: { scheme: 'file', fsPath: filePath } }, selection: { active: { line: 0 } } };
+        mockActiveEditor = {
+            document: { uri: { scheme: 'file', fsPath: filePath } },
+            selection: { active: { line: 0 } },
+        };
         await flushDebounce();
         expect(jjMock.annotate).toHaveBeenCalledTimes(1);
 
@@ -305,11 +313,17 @@ describe('JjBlameStatusBarItem', () => {
             makeAnnotateOutput('aabbccdd1122|Alice|1 day ago|Some commit'),
         );
 
-        mockActiveEditor = { document: { uri: { scheme: 'file', fsPath: '/repo/a.ts' } }, selection: { active: { line: 0 } } };
+        mockActiveEditor = {
+            document: { uri: { scheme: 'file', fsPath: '/repo/a.ts' } },
+            selection: { active: { line: 0 } },
+        };
         blameItem.invalidateCache();
         await flushDebounce();
 
-        mockActiveEditor = { document: { uri: { scheme: 'file', fsPath: '/repo/b.ts' } }, selection: { active: { line: 0 } } };
+        mockActiveEditor = {
+            document: { uri: { scheme: 'file', fsPath: '/repo/b.ts' } },
+            selection: { active: { line: 0 } },
+        };
         blameItem.invalidateCache();
         await flushDebounce();
 
@@ -328,7 +342,10 @@ describe('JjBlameStatusBarItem', () => {
         );
 
         // Fire five rapid invalidations (simulating fast cursor movement)
-        mockActiveEditor = { document: { uri: { scheme: 'file', fsPath: filePath } }, selection: { active: { line: 0 } } };
+        mockActiveEditor = {
+            document: { uri: { scheme: 'file', fsPath: filePath } },
+            selection: { active: { line: 0 } },
+        };
         for (let i = 0; i < 5; i++) {
             blameItem.invalidateCache();
             await vi.advanceTimersByTimeAsync(50); // less than DEBOUNCE_MS
